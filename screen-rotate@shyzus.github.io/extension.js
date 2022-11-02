@@ -99,7 +99,7 @@ class SensorProxy {
 
 class ScreenAutorotate {
     constructor() {
-        this._system_actions = Main.panel.statusArea.aggregateMenu._system._systemActions;
+        this._system_actions = Main.panel.statusArea.quickSettings._autoRotate.quickSettingsItems[0]._systemActions;
         this._system_actions_backup = null;
         this._override_system_actions();
         this._orientation_settings = new Gio.Settings({ schema_id: ORIENTATION_LOCK_SCHEMA });
