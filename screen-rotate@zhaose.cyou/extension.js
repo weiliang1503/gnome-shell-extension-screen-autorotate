@@ -99,10 +99,14 @@ class SensorProxy {
 
 class ScreenAutorotate {
     constructor() {
-        this._system_actions = Main.panel.statusArea.quickSettings._autoRotate.quickSettingsItems[0]._systemActions;
+        this._system_actions = (new SystemActions.getDefault());
+	
         this._system_actions_backup = null;
         this._override_system_actions();
-        this._orientation_settings = new Gio.Settings({ schema_id: ORIENTATION_LOCK_SCHEMA });
+
+	Main.panel._updatePanel()
+	
+	this._orientation_settings = new Gio.Settings({ schema_id: ORIENTATION_LOCK_SCHEMA });
         this._orientation_settings.connect('changed::' + ORIENTATION_LOCK_KEY, this._orientation_lock_changed.bind(this));
 
         this._sensor_proxy = new SensorProxy( this.rotate_to.bind(this) );
@@ -118,14 +122,13 @@ class ScreenAutorotate {
             '_updateOrientationLock': this._system_actions._updateOrientationLock
         };
 
-        this._system_actions._updateOrientationLock = function() {
+	this._system_actions._updateOrientationLock = function() {
             try {
-                this._actions.get(SystemActions.LOCK_ORIENTATION_ACTION_ID).available = true;
-                this.notify('can-lock-orientation');
-            } catch (err) {
-                logError(err, "Lock Orientation action not initialized.")
+                (new imports.misc.systemActions.getDefault())._actions.get('lock-orientation').available = true;
+                (new imports.misc.systemActions.getDefault()).notify('can-lock-orientation');
+            } catch (error) {
+                log(error)
             }
-
         };
         this._system_actions._updateOrientationLock();
     }
