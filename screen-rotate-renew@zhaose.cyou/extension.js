@@ -39,6 +39,11 @@ const Orientation = Object.freeze({
     'right-up': 3
 });
 
+const {Clutter} = imports.gi;
+
+let seat = null, originalGetTouchMode = null;
+
+
 class SensorProxy {
     constructor(rotate_cb) {
         this._rotate_cb = rotate_cb;
@@ -174,6 +179,25 @@ class ScreenAutorotate {
     rotate_to(orientation) {
         let target = Orientation[orientation];
         Rotator.rotate_to(target);
+	if (target == 2) {
+	    try {
+		GLib.spawn_command_line_async('pactl load-module module-remap-sink sink_name=reverse-stereo master=alsa_output.pci-0000_08_00.6.analog-stereo channels=2 master_channel_map=front-right,front-left channel_map=front-left,front-right');
+	    } catch (error) {
+		log(error);
+	    }
+	} else {
+	    try {
+		GLib.spawn_command_line_async('pactl unload-module module-remap-sink');
+	    } catch (error) {
+		log(error);
+	    }
+	}
+
+	if (target != 0) {
+	    seat.get_touch_mode = () => true;
+	} else {
+	    seat.get_touch_mode = originalGetTouchMode;
+	}
     }
 }
 
@@ -185,15 +209,25 @@ class Extension {
 
     enable() {
         this._ext = new ScreenAutorotate();
+	// let proxy = Gio.DBusProxy.new_for_bus_sync(
+        //     Gio.BusType.SYSTEM, Gio.DBusProxyFlags.NONE, null,
+        //     'net.hadess.SensorProxy', '/net/hadess/SensorProxy', 'net.hadess.SensorProxy',
+        //     null);
+	// this._ext.rotate_to(
+	//     proxy.get_cached_property("AccelerometerOrientation").get_string()[0]);
+	// proxy.destroy()
     }
 
     disable() {
         this._ext.destroy();
         this._ext = null;
+	seat.get_touch_mode = originalGetTouchMode;
     }
 }
 
 function init(meta) {
+    seat = Clutter.get_default_backend().get_default_seat();
+    originalGetTouchMode = seat.get_touch_mode;
     return new Extension(meta.uuid);
 }
 
